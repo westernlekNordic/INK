@@ -1,0 +1,152 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: orders
+    // Document ID: auto-generated
+    // Fields:
+    //   - customerName: string (required)
+    //   - email: string (required, valid email)
+    //   - phone: string (optional)
+    //   - productType: string (required)
+    //   - size: string (optional)
+    //   - quantity: number (required, positive)
+    //   - specialInstructions: string (optional)
+    //   - fileMetadata: string (optional)
+    //   - status: string (required, enum)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: quotes
+    // Document ID: auto-generated
+    // Fields:
+    //   - customerName: string (required)
+    //   - email: string (required, valid email)
+    //   - phone: string (optional)
+    //   - serviceType: string (required)
+    //   - quantity: number (required, positive)
+    //   - description: string (required)
+    //   - fileMetadata: string (optional)
+    //   - status: string (required, enum)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: meetings
+    // Document ID: auto-generated
+    // Fields:
+    //   - customerName: string (required)
+    //   - email: string (required, valid email)
+    //   - phone: string (optional)
+    //   - meetingType: string (required, enum)
+    //   - date: string (required)
+    //   - time: string (required)
+    //   - status: string (required, enum)
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: messages
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, valid email)
+    //   - message: string (required)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == "westernleklimited@gmail.com";
+    }
+    
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+    
+    function isPositive(field) {
+      return request.resource.data[field] is number && request.resource.data[field] > 0;
+    }
+    
+    function isValidOptionalString(field, maxLen) {
+      return !('field' in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() <= maxLen);
+    }
+    
+    // Domain Validators
+    function isValidOrder(data) {
+      return data.keys().hasAll(['customerName', 'email', 'productType', 'quantity', 'status', 'createdAt']) &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.productType is string && data.productType.size() > 0 && data.productType.size() < 50 &&
+             isPositive('quantity') &&
+             data.status in ['pending', 'processing', 'completed', 'cancelled'] &&
+             data.createdAt is timestamp &&
+             isValidOptionalString('phone', 20) &&
+             isValidOptionalString('size', 10) &&
+             isValidOptionalString('specialInstructions', 2000) &&
+             isValidOptionalString('fileMetadata', 2000);
+    }
+    
+    function isValidQuote(data) {
+      return data.keys().hasAll(['customerName', 'email', 'serviceType', 'quantity', 'description', 'status', 'createdAt']) &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.serviceType is string && data.serviceType.size() > 0 && data.serviceType.size() < 100 &&
+             isPositive('quantity') &&
+             data.description is string && data.description.size() > 0 && data.description.size() < 5000 &&
+             data.status in ['pending', 'reviewed', 'replied'] &&
+             data.createdAt is timestamp &&
+             isValidOptionalString('phone', 20) &&
+             isValidOptionalString('fileMetadata', 2000);
+    }
+    
+    function isValidMeeting(data) {
+      return data.keys().hasAll(['customerName', 'email', 'meetingType', 'date', 'time', 'status', 'createdAt']) &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.meetingType in ['online', 'physical'] &&
+             data.date is string && data.date.size() > 0 && data.date.size() < 20 &&
+             data.time is string && data.time.size() > 0 && data.time.size() < 20 &&
+             data.status in ['scheduled', 'completed', 'cancelled'] &&
+             data.createdAt is timestamp &&
+             isValidOptionalString('phone', 20);
+    }
+    
+    function isValidMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'message', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             isValidEmail(data.email) &&
+             data.message is string && data.message.size() > 0 && data.message.size() < 5000 &&
+             data.createdAt is timestamp;
+    }
+
+    match /orders/{orderId} {
+      // Anyone can create an order, but only admins can read/update/delete
+      allow create: if isValidOrder(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+    
+    match /quotes/{quoteId} {
+      // Anyone can request a quote, but only admins can read/update/delete
+      allow create: if isValidQuote(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+    
+    match /meetings/{meetingId} {
+      // Anyone can book a meeting, but only admins can read/update/delete
+      allow create: if isValidMeeting(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+    
+    match /messages/{messageId} {
+      // Anyone can send a message, but only admins can read/update/delete
+      allow create: if isValidMessage(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

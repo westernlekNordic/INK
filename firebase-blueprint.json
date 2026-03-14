@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A customer order for printing services",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "productType": { "type": "string" },
+        "size": { "type": "string" },
+        "quantity": { "type": "number" },
+        "specialInstructions": { "type": "string" },
+        "fileMetadata": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "processing", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "email", "productType", "quantity", "status", "createdAt"]
+    },
+    "QuoteRequest": {
+      "title": "QuoteRequest",
+      "description": "A customer request for a custom printing quote",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "quantity": { "type": "number" },
+        "description": { "type": "string" },
+        "fileMetadata": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "reviewed", "replied"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "email", "serviceType", "quantity", "description", "status", "createdAt"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "A booked consultation meeting",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "meetingType": { "type": "string", "enum": ["online", "physical"] },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string", "enum": ["scheduled", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerName", "email", "meetingType", "date", "time", "status", "createdAt"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "A message sent via the contact form",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders"
+    },
+    "/quotes/{quoteId}": {
+      "schema": { "$ref": "#/entities/QuoteRequest" },
+      "description": "Quote requests"
+    },
+    "/meetings/{meetingId}": {
+      "schema": { "$ref": "#/entities/Meeting" },
+      "description": "Booked meetings"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ContactMessage" },
+      "description": "Contact form messages"
+    }
+  }
+}
